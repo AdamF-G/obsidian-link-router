@@ -11,6 +11,7 @@
 - [x] TypeScript strict checking
 - [x] Official Obsidian ESLint rules
 - [x] CI and release-asset workflows
+- [x] Prerelease/stable workflow option and installable plugin ZIP
 - [x] Local production build
 
 ## Before public beta
