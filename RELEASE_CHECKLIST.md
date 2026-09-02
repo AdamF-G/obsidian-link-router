@@ -17,21 +17,21 @@
 
 ## Before public beta
 
-- [ ] Install the `link-router` build in a dedicated test vault
+- [x] Install and test the standalone `link-router` build in the Filet vault
 - [ ] Test Chrome, Edge, Firefox, Brave, and custom executable behavior
 - [x] Test Windows and iOS
-- [ ] Obtain Android, macOS, and Linux community confirmation
-- [ ] Test Reading View, Live Preview, Source mode, and pop-out windows
-- [ ] Add screenshots to the README
-- [ ] Review wording, accessibility, and privacy disclosure
+- [ ] Obtain optional Android, macOS, and Linux community confirmation
+- [x] Test Reading View, Live Preview, Source mode, and pop-out windows
+- [ ] Add optional screenshots to the README
+- [x] Review wording, accessibility, and privacy disclosure
 - [x] Create a private GitHub repository after owner approval
 - [x] Push the initial source after owner approval
 - [x] Publish a prerelease for BRAT after owner approval
 
 ## Before Community Directory submission
 
-- [ ] Collect beta feedback and fix confirmed defects
-- [ ] Select and publish stable version 1.0.0
+- [x] Collect beta feedback and fix confirmed defects
+- [x] Select stable version 1.0.0
 - [x] Verify `manifest.json` and `versions.json`
 - [x] Publish matching beta release assets: `main.js`, `manifest.json`, `styles.css`
 - [ ] Submit through community.obsidian.md only after owner approval
