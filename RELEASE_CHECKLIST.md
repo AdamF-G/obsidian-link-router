@@ -31,7 +31,7 @@
 ## Before Community Directory submission
 
 - [x] Collect beta feedback and fix confirmed defects
-- [x] Select stable version 1.0.0
+- [x] Select and publish stable version 1.0.0
 - [x] Verify `manifest.json` and `versions.json`
-- [x] Publish matching beta release assets: `main.js`, `manifest.json`, `styles.css`
+- [x] Publish matching stable release assets: `main.js`, `manifest.json`, `styles.css`
 - [ ] Submit through community.obsidian.md only after owner approval
