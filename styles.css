@@ -1,0 +1,47 @@
+.link-router-widget {
+  display: inline;
+}
+
+.link-router-anchor {
+  cursor: pointer;
+}
+
+.link-router-edit-edge {
+  display: inline;
+  position: relative;
+  width: 0;
+  cursor: text;
+}
+
+.link-router-edit-edge::before {
+  content: "";
+  position: absolute;
+  top: -0.15em;
+  bottom: -0.15em;
+  width: 0.2em;
+  z-index: 1;
+  cursor: text;
+}
+
+.link-router-edit-edge-left::before {
+  right: 0;
+}
+
+.link-router-edit-edge-right::before {
+  left: 0;
+}
+
+.link-router-icon {
+  display: inline-block;
+  width: 0.85em;
+  height: 0.85em;
+  margin-left: 0.18em;
+  vertical-align: -0.08em;
+  opacity: 0.75;
+}
+
+.link-router-icon > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
