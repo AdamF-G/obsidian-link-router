@@ -1,6 +1,6 @@
 # Link Router
 
-Link Router gives specially delimited web links an alternate action while leaving ordinary links unchanged. Route marked links to a selected browser, a private browser window, the system browser, a custom launch command, or the clipboard.
+Link Router is an Obsidian plugin that gives specially delimited web links an alternate action while leaving ordinary links unchanged. Route marked links to a selected browser, a private browser window, the system browser, a custom launch command, or the clipboard.
 
 By default, write a URL between curly braces:
 
