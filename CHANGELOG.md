@@ -2,7 +2,7 @@
 
 ## 1.0.1
 
-- Correct settings UI structure while retaining compatibility with older Obsidian versions.
+- Add searchable declarative settings for Obsidian 1.13 and later.
 - Use Obsidian UI element helpers consistently.
 - Add GitHub build-provenance attestations for release assets.
 - Limit release assets to the files supported by Obsidian.

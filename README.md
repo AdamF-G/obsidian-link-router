@@ -43,7 +43,7 @@ Install **Link Router** from Obsidian's Community Plugins browser, then enable i
 
 - Tested on Obsidian 1.8.9 for Windows and on Obsidian for iOS.
 - Android, macOS, and Linux support is expected but awaiting community confirmation.
-- The declared minimum Obsidian version is 1.4.0.
+- The declared minimum Obsidian version is 1.13.0.
 
 ## Privacy and system access
 

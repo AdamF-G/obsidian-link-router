@@ -4,9 +4,9 @@ import {
   Platform,
   Plugin,
   PluginSettingTab,
-  Setting,
   setIcon,
-  type App
+  type App,
+  type SettingDefinitionItem
 } from "obsidian";
 import { StateEffect, Transaction } from "@codemirror/state";
 import { Decoration, type DecorationSet, type EditorView, type ViewUpdate, ViewPlugin, WidgetType } from "@codemirror/view";
@@ -545,132 +545,136 @@ class LinkRouterSettingTab extends PluginSettingTab {
     super(app, plugin);
   }
 
-  display(): void {
-    const { containerEl } = this;
-    containerEl.empty();
-    containerEl.createEl("p", {
-      text: "Delimited HTTP and HTTPS links use a configurable route. Ordinary links are unaffected."
-    });
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        name: "Opening delimiter",
+        desc: "One non-whitespace character is recommended.",
+        control: {
+          type: "text",
+          key: "openingDelimiter",
+          defaultValue: DEFAULT_SETTINGS.openingDelimiter,
+          validate: (value) => this.validateDelimiter("openingDelimiter", value)
+        }
+      },
+      {
+        name: "Closing delimiter",
+        desc: "One non-whitespace character is recommended.",
+        control: {
+          type: "text",
+          key: "closingDelimiter",
+          defaultValue: DEFAULT_SETTINGS.closingDelimiter,
+          validate: (value) => this.validateDelimiter("closingDelimiter", value)
+        }
+      },
+      {
+        name: "Link icon",
+        desc: "Icon displayed at the end of routed links.",
+        control: {
+          type: "dropdown",
+          key: "linkIcon",
+          defaultValue: DEFAULT_SETTINGS.linkIcon,
+          options: {
+            "external-link": "External link (boxed arrow)",
+            "arrow-up-right": "Arrow up-right",
+            link: "Link",
+            copy: "Copy",
+            none: "None"
+          }
+        }
+      },
+      {
+        name: "Mobile route",
+        desc: "Action used when a routed link is activated on mobile.",
+        control: {
+          type: "dropdown",
+          key: "mobileRoute",
+          defaultValue: DEFAULT_SETTINGS.mobileRoute,
+          options: { copy: "Copy URL", open: "Open normally" }
+        }
+      },
+      {
+        name: "Mobile long-press menu",
+        desc: "Long-press a routed link to choose between opening and copying it.",
+        control: {
+          type: "toggle",
+          key: "mobileLongPressMenu",
+          defaultValue: DEFAULT_SETTINGS.mobileLongPressMenu
+        }
+      },
+      {
+        name: "Desktop route",
+        desc: "Action used when a routed link is activated on desktop.",
+        visible: () => !Platform.isMobile,
+        control: {
+          type: "dropdown",
+          key: "desktopRoute",
+          defaultValue: DEFAULT_SETTINGS.desktopRoute,
+          options: {
+            private: "Open selected browser privately",
+            browser: "Open selected browser normally",
+            system: "Open system default browser",
+            copy: "Copy URL",
+            custom: "Custom executable and arguments"
+          }
+        }
+      },
+      {
+        name: "Browser",
+        desc: "Chrome is used by default.",
+        visible: () => !Platform.isMobile &&
+          (this.plugin.settings.desktopRoute === "private" || this.plugin.settings.desktopRoute === "browser"),
+        control: {
+          type: "dropdown",
+          key: "browser",
+          defaultValue: DEFAULT_SETTINGS.browser,
+          options: {
+            chrome: "Google Chrome",
+            edge: "Microsoft Edge",
+            firefox: "Mozilla Firefox",
+            brave: "Brave"
+          }
+        }
+      },
+      {
+        name: "Browser executable",
+        desc: "Full path to the browser executable.",
+        visible: () => !Platform.isMobile && this.plugin.settings.desktopRoute === "custom",
+        control: {
+          type: "text",
+          key: "customExecutable",
+          defaultValue: DEFAULT_SETTINGS.customExecutable,
+          placeholder: "C:\\Path\\To\\browser.exe"
+        }
+      },
+      {
+        name: "Launch arguments",
+        desc: "Use {url} where the URL should be inserted. If omitted, the URL is appended.",
+        visible: () => !Platform.isMobile && this.plugin.settings.desktopRoute === "custom",
+        control: {
+          type: "text",
+          key: "customArguments",
+          defaultValue: DEFAULT_SETTINGS.customArguments,
+          placeholder: "--incognito {url}"
+        }
+      }
+    ];
+  }
 
-    const addDelimiterSetting = (name: string, key: "openingDelimiter" | "closingDelimiter"): void => {
-      new Setting(containerEl)
-        .setName(name)
-        .setDesc("One non-whitespace character is recommended.")
-        .addText((text) => {
-          text.inputEl.maxLength = 4;
-          text.setValue(this.plugin.settings[key]);
-          text.onChange(async (value) => {
-            const candidate = { ...this.plugin.settings, [key]: value };
-            const error = validateSyntax(candidate);
-            if (error) {
-              text.inputEl.setCustomValidity(error);
-              return;
-            }
-            text.inputEl.setCustomValidity("");
-            this.plugin.settings[key] = value;
-            await this.plugin.saveSettings();
-            this.plugin.refreshEditors();
-          });
-        });
-    };
+  getControlValue(key: string): unknown {
+    return this.plugin.settings[key as keyof LinkRouterSettings];
+  }
 
-    addDelimiterSetting("Opening delimiter", "openingDelimiter");
-    addDelimiterSetting("Closing delimiter", "closingDelimiter");
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    (this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
+    await this.plugin.saveSettings();
+    if (key === "openingDelimiter" || key === "closingDelimiter") this.plugin.refreshEditors();
+    if (key === "linkIcon") this.plugin.refreshIcons();
+    if (key === "desktopRoute") this.refreshDomState();
+  }
 
-    new Setting(containerEl)
-      .setName("Link icon")
-      .setDesc("Icon displayed at the end of routed links.")
-      .addDropdown((dropdown) => dropdown
-        .addOption("external-link", "External link (boxed arrow)")
-        .addOption("arrow-up-right", "Arrow up-right")
-        .addOption("link", "Link")
-        .addOption("copy", "Copy")
-        .addOption("none", "None")
-        .setValue(this.plugin.settings.linkIcon)
-        .onChange(async (value) => {
-          this.plugin.settings.linkIcon = value as IconId;
-          await this.plugin.saveSettings();
-          this.plugin.refreshIcons();
-        }));
-
-    new Setting(containerEl)
-      .setName("Mobile route")
-      .setDesc("Action used when a routed link is activated on mobile.")
-      .addDropdown((dropdown) => dropdown
-        .addOption("copy", "Copy URL")
-        .addOption("open", "Open normally")
-        .setValue(this.plugin.settings.mobileRoute)
-        .onChange(async (value) => {
-          this.plugin.settings.mobileRoute = value as MobileRoute;
-          await this.plugin.saveSettings();
-        }));
-
-    new Setting(containerEl)
-      .setName("Mobile long-press menu")
-      .setDesc("Long-press a routed link to choose between opening and copying it.")
-      .addToggle((toggle) => toggle
-        .setValue(this.plugin.settings.mobileLongPressMenu)
-        .onChange(async (value) => {
-          this.plugin.settings.mobileLongPressMenu = value;
-          await this.plugin.saveSettings();
-        }));
-
-    if (Platform.isMobile) return;
-
-    new Setting(containerEl)
-      .setName("Desktop route")
-      .setDesc("Action used when a routed link is activated on desktop.")
-      .addDropdown((dropdown) => dropdown
-        .addOption("private", "Open selected browser privately")
-        .addOption("browser", "Open selected browser normally")
-        .addOption("system", "Open system default browser")
-        .addOption("copy", "Copy URL")
-        .addOption("custom", "Custom executable and arguments")
-        .setValue(this.plugin.settings.desktopRoute)
-        .onChange(async (value) => {
-          this.plugin.settings.desktopRoute = value as DesktopRoute;
-          await this.plugin.saveSettings();
-          this.display();
-        }));
-
-    if (this.plugin.settings.desktopRoute === "private" || this.plugin.settings.desktopRoute === "browser") {
-      new Setting(containerEl)
-        .setName("Browser")
-        .setDesc("Chrome is used by default.")
-        .addDropdown((dropdown) => dropdown
-        .addOption("chrome", "Google Chrome")
-        .addOption("edge", "Microsoft Edge")
-        .addOption("firefox", "Mozilla Firefox")
-        .addOption("brave", "Brave")
-        .setValue(this.plugin.settings.browser)
-        .onChange(async (value) => {
-          this.plugin.settings.browser = value as BrowserId;
-          await this.plugin.saveSettings();
-        }));
-    }
-
-    if (this.plugin.settings.desktopRoute === "custom") {
-      new Setting(containerEl)
-        .setName("Browser executable")
-        .setDesc("Full path to the browser executable.")
-        .addText((text) => text
-          .setPlaceholder("C:\\Path\\To\\browser.exe")
-          .setValue(this.plugin.settings.customExecutable)
-          .onChange(async (value) => {
-            this.plugin.settings.customExecutable = value;
-            await this.plugin.saveSettings();
-          }));
-
-      new Setting(containerEl)
-        .setName("Launch arguments")
-        .setDesc("Use {url} where the URL should be inserted. If omitted, the URL is appended.")
-        .addText((text) => text
-          .setPlaceholder("--incognito {url}")
-          .setValue(this.plugin.settings.customArguments)
-          .onChange(async (value) => {
-            this.plugin.settings.customArguments = value;
-            await this.plugin.saveSettings();
-          }));
-    }
+  private validateDelimiter(key: "openingDelimiter" | "closingDelimiter", value: string): string | void {
+    if (value.length > 4) return "Delimiter cannot be longer than four characters.";
+    return validateSyntax({ ...this.plugin.settings, [key]: value }) ?? undefined;
   }
 }
