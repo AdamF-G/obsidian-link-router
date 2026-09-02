@@ -6,7 +6,8 @@ import {
   PluginSettingTab,
   Setting,
   setIcon,
-  type App
+  type App,
+  type SettingDefinitionItem
 } from "obsidian";
 import { StateEffect, Transaction } from "@codemirror/state";
 import { Decoration, type DecorationSet, type EditorView, type ViewUpdate, ViewPlugin, WidgetType } from "@codemirror/view";
@@ -118,7 +119,7 @@ function splitArguments(value: string): string[] {
 
 function appendLinkIcon(link: HTMLAnchorElement, iconName: IconId): void {
   if (iconName === "none" || link.querySelector(":scope > .link-router-icon")) return;
-  const icon = link.ownerDocument.createElement("span");
+  const icon = link.ownerDocument.createDocumentFragment().createSpan();
   icon.className = "link-router-icon";
   icon.setAttribute("aria-hidden", "true");
   setIcon(icon, iconName);
@@ -143,11 +144,11 @@ class RoutedLinkWidget extends WidgetType {
 
   toDOM(view: EditorView): HTMLElement {
     const document = view.dom.ownerDocument;
-    const wrapper = document.createElement("span");
+    const wrapper = document.createDocumentFragment().createSpan();
     wrapper.className = "link-router-widget";
 
     const makeEditEdge = (position: number, side: "left" | "right"): HTMLSpanElement => {
-      const edge = document.createElement("span");
+      const edge = document.createDocumentFragment().createSpan();
       edge.className = `link-router-edit-edge link-router-edit-edge-${side}`;
       edge.setAttribute("aria-label", "Edit routed link");
       edge.addEventListener("mousedown", (event) => {
@@ -245,7 +246,7 @@ export default class LinkRouterPlugin extends Plugin {
   }
 
   createLinkElement(document: Document, url: string, displayText = url): HTMLAnchorElement {
-    const link = document.createElement("a");
+    const link = document.createDocumentFragment().createEl("a");
     link.className = "link-router-anchor";
     link.href = url;
     link.dataset.privateUrl = url;
@@ -545,10 +546,147 @@ class LinkRouterSettingTab extends PluginSettingTab {
     super(app, plugin);
   }
 
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [{
+      type: "group",
+      heading: "Link Router",
+      items: [
+        {
+          name: "Opening delimiter",
+          desc: "One non-whitespace character is recommended.",
+          control: {
+            type: "text",
+            key: "openingDelimiter",
+            defaultValue: DEFAULT_SETTINGS.openingDelimiter,
+            validate: (value) => this.validateDelimiter("openingDelimiter", value)
+          }
+        },
+        {
+          name: "Closing delimiter",
+          desc: "One non-whitespace character is recommended.",
+          control: {
+            type: "text",
+            key: "closingDelimiter",
+            defaultValue: DEFAULT_SETTINGS.closingDelimiter,
+            validate: (value) => this.validateDelimiter("closingDelimiter", value)
+          }
+        },
+        {
+          name: "Link icon",
+          desc: "Icon displayed at the end of routed links.",
+          control: {
+            type: "dropdown",
+            key: "linkIcon",
+            defaultValue: DEFAULT_SETTINGS.linkIcon,
+            options: {
+              "external-link": "External link (boxed arrow)",
+              "arrow-up-right": "Arrow up-right",
+              link: "Link",
+              copy: "Copy",
+              none: "None"
+            }
+          }
+        },
+        {
+          name: "Mobile route",
+          desc: "Action used when a routed link is activated on mobile.",
+          control: {
+            type: "dropdown",
+            key: "mobileRoute",
+            defaultValue: DEFAULT_SETTINGS.mobileRoute,
+            options: { copy: "Copy URL", open: "Open normally" }
+          }
+        },
+        {
+          name: "Mobile long-press menu",
+          desc: "Long-press a routed link to choose between opening and copying it.",
+          control: {
+            type: "toggle",
+            key: "mobileLongPressMenu",
+            defaultValue: DEFAULT_SETTINGS.mobileLongPressMenu
+          }
+        },
+        {
+          name: "Desktop route",
+          desc: "Action used when a routed link is activated on desktop.",
+          visible: () => !Platform.isMobile,
+          control: {
+            type: "dropdown",
+            key: "desktopRoute",
+            defaultValue: DEFAULT_SETTINGS.desktopRoute,
+            options: {
+              private: "Open selected browser privately",
+              browser: "Open selected browser normally",
+              system: "Open system default browser",
+              copy: "Copy URL",
+              custom: "Custom executable and arguments"
+            }
+          }
+        },
+        {
+          name: "Browser",
+          desc: "Chrome is used by default.",
+          visible: () => !Platform.isMobile &&
+            (this.plugin.settings.desktopRoute === "private" || this.plugin.settings.desktopRoute === "browser"),
+          control: {
+            type: "dropdown",
+            key: "browser",
+            defaultValue: DEFAULT_SETTINGS.browser,
+            options: {
+              chrome: "Google Chrome",
+              edge: "Microsoft Edge",
+              firefox: "Mozilla Firefox",
+              brave: "Brave"
+            }
+          }
+        },
+        {
+          name: "Browser executable",
+          desc: "Full path to the browser executable.",
+          visible: () => !Platform.isMobile && this.plugin.settings.desktopRoute === "custom",
+          control: {
+            type: "text",
+            key: "customExecutable",
+            defaultValue: DEFAULT_SETTINGS.customExecutable,
+            placeholder: "C:\\Path\\To\\browser.exe"
+          }
+        },
+        {
+          name: "Browser arguments",
+          desc: "Use {url} where the URL should be inserted. If omitted, the URL is appended.",
+          visible: () => !Platform.isMobile && this.plugin.settings.desktopRoute === "custom",
+          control: {
+            type: "text",
+            key: "customArguments",
+            defaultValue: DEFAULT_SETTINGS.customArguments,
+            placeholder: "--incognito {url}"
+          }
+        }
+      ]
+    }];
+  }
+
+  getControlValue(key: string): unknown {
+    return this.plugin.settings[key as keyof LinkRouterSettings];
+  }
+
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    (this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
+    await this.plugin.saveSettings();
+    if (key === "openingDelimiter" || key === "closingDelimiter") this.plugin.refreshEditors();
+    if (key === "linkIcon") this.plugin.refreshIcons();
+    if (key === "desktopRoute") this.refreshDomState();
+  }
+
+  private validateDelimiter(key: "openingDelimiter" | "closingDelimiter", value: string): string | void {
+    if (value.length > 4) return "Delimiter cannot be longer than four characters.";
+    return validateSyntax({ ...this.plugin.settings, [key]: value }) ?? undefined;
+  }
+
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Link Router" });
+    new Setting(containerEl).setName("Link Router").setHeading();
     containerEl.createEl("p", {
       text: "Delimited HTTP and HTTPS links use a configurable route. Ordinary links are unaffected."
     });

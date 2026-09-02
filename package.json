@@ -1,6 +1,6 @@
 {
   "name": "link-router",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Obsidian plugin for routing specially delimited web links to configurable actions.",
   "main": "main.js",
   "scripts": {

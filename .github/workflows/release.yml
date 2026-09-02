@@ -17,6 +17,8 @@ on:
         type: boolean
 
 permissions:
+  id-token: write
+  attestations: write
   contents: write
 
 jobs:
@@ -39,8 +41,13 @@ jobs:
         env:
           RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
         run: node -e "const manifest = require('./manifest.json'); if (manifest.version !== process.env.RELEASE_TAG) { throw new Error('manifest version ' + manifest.version + ' does not match tag ' + process.env.RELEASE_TAG); }"
-      - name: Package plugin
-        run: zip -j link-router.zip main.js manifest.json styles.css
+      - name: Attest release assets
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
@@ -50,4 +57,3 @@ jobs:
             main.js
             manifest.json
             styles.css
-            link-router.zip
