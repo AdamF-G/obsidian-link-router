@@ -13,23 +13,25 @@
 - [x] CI and release-asset workflows
 - [x] Prerelease/stable workflow option and installable plugin ZIP
 - [x] Local production build
+- [x] Automated manifest, package version, versions map, description, and required-file checks
 
 ## Before public beta
 
 - [ ] Install the `link-router` build in a dedicated test vault
 - [ ] Test Chrome, Edge, Firefox, Brave, and custom executable behavior
-- [ ] Test Windows, macOS, Linux, Android, and iOS where available
+- [x] Test Windows and iOS
+- [ ] Obtain Android, macOS, and Linux community confirmation
 - [ ] Test Reading View, Live Preview, Source mode, and pop-out windows
 - [ ] Add screenshots to the README
 - [ ] Review wording, accessibility, and privacy disclosure
 - [x] Create a private GitHub repository after owner approval
 - [x] Push the initial source after owner approval
-- [ ] Publish a prerelease for BRAT only after owner approval
+- [x] Publish a prerelease for BRAT after owner approval
 
 ## Before Community Directory submission
 
 - [ ] Collect beta feedback and fix confirmed defects
-- [ ] Select the first stable semantic version
-- [ ] Verify `manifest.json` and `versions.json`
-- [ ] Publish matching GitHub release assets: `main.js`, `manifest.json`, `styles.css`
+- [ ] Select and publish stable version 1.0.0
+- [x] Verify `manifest.json` and `versions.json`
+- [x] Publish matching beta release assets: `main.js`, `manifest.json`, `styles.css`
 - [ ] Submit through community.obsidian.md only after owner approval

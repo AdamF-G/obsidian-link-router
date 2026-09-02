@@ -8,7 +8,8 @@
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
     "test": "vitest run",
     "lint": "eslint .",
-    "check": "pnpm run lint && pnpm run test && pnpm run build",
+    "verify-release": "node scripts/verify-release.mjs",
+    "check": "pnpm run lint && pnpm run test && pnpm run verify-release && pnpm run build",
     "version": "node version-bump.mjs && git add manifest.json versions.json"
   },
   "keywords": [
