@@ -7,6 +7,7 @@ export interface RoutedLinkMatch {
   from: number;
   to: number;
   url: string;
+  displayText: string;
 }
 
 export function escapeRegExp(value: string): string {
@@ -27,7 +28,8 @@ export function createRoutedLinkRegExp(syntax: LinkSyntax, global = true): RegEx
   if (error) throw new Error(error);
   const opening = escapeRegExp(syntax.openingDelimiter);
   const closing = escapeRegExp(syntax.closingDelimiter);
-  return new RegExp(`${opening}(https?:\\/\\/[^\\s]+?)${closing}`, global ? "giu" : "iu");
+  const label = `((?:(?!${closing})[^\\r\\n])+?)\\|`;
+  return new RegExp(`${opening}(?:${label})?(https?:\\/\\/[^\\s]+?)${closing}`, global ? "giu" : "iu");
 }
 
 export function findRoutedLinks(text: string, syntax: LinkSyntax): RoutedLinkMatch[] {
@@ -35,7 +37,13 @@ export function findRoutedLinks(text: string, syntax: LinkSyntax): RoutedLinkMat
   const regex = createRoutedLinkRegExp(syntax);
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
-    matches.push({ from: match.index, to: match.index + match[0].length, url: match[1] });
+    const url = match[2];
+    matches.push({
+      from: match.index,
+      to: match.index + match[0].length,
+      url,
+      displayText: match[1]?.trim() || url
+    });
   }
   return matches;
 }

@@ -6,7 +6,24 @@ describe("private-link syntax", () => {
     expect(findRoutedLinks("See {https://example.com/a?q=1}.", {
       openingDelimiter: "{",
       closingDelimiter: "}"
-    })).toEqual([{ from: 4, to: 31, url: "https://example.com/a?q=1" }]);
+    })).toEqual([{
+      from: 4,
+      to: 31,
+      url: "https://example.com/a?q=1",
+      displayText: "https://example.com/a?q=1"
+    }]);
+  });
+
+  it("supports display text before the URL", () => {
+    expect(findRoutedLinks("See {Example site|https://example.com}.", {
+      openingDelimiter: "{",
+      closingDelimiter: "}"
+    })).toEqual([{
+      from: 4,
+      to: 38,
+      url: "https://example.com",
+      displayText: "Example site"
+    }]);
   });
 
   it("supports configurable delimiter characters", () => {

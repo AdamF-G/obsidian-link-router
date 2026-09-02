@@ -8,6 +8,12 @@ By default, write a URL between curly braces:
 {https://example.com}
 ```
 
+Add display text before the URL with a pipe:
+
+```markdown
+{Example site|https://example.com}
+```
+
 Ordinary bare URLs and Markdown links remain unchanged. The opening and closing delimiters are configurable.
 
 ## Behavior

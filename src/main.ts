@@ -126,6 +126,7 @@ class RoutedLinkWidget extends WidgetType {
   constructor(
     private readonly plugin: LinkRouterPlugin,
     private readonly url: string,
+    private readonly displayText: string,
     private readonly from: number,
     private readonly to: number
   ) {
@@ -133,7 +134,8 @@ class RoutedLinkWidget extends WidgetType {
   }
 
   eq(other: RoutedLinkWidget): boolean {
-    return other.url === this.url && other.from === this.from && other.to === this.to;
+    return other.url === this.url && other.displayText === this.displayText &&
+      other.from === this.from && other.to === this.to;
   }
 
   toDOM(view: EditorView): HTMLElement {
@@ -158,7 +160,7 @@ class RoutedLinkWidget extends WidgetType {
     };
 
     wrapper.append(makeEditEdge(this.from, "left"));
-    wrapper.append(this.plugin.createLinkElement(document, this.url));
+    wrapper.append(this.plugin.createLinkElement(document, this.url, this.displayText));
     wrapper.append(makeEditEdge(this.to, "right"));
     return wrapper;
   }
@@ -188,7 +190,7 @@ function buildEditorDecorations(
       if (honorSelection && isBeingEdited) continue;
 
       decorations.push(Decoration.replace({
-        widget: new RoutedLinkWidget(plugin, match.url, from, to)
+        widget: new RoutedLinkWidget(plugin, match.url, match.displayText, from, to)
       }).range(from, to));
     }
   }
@@ -239,12 +241,12 @@ export default class LinkRouterPlugin extends Plugin {
     this.addSettingTab(new LinkRouterSettingTab(this.app, this));
   }
 
-  createLinkElement(document: Document, url: string): HTMLAnchorElement {
+  createLinkElement(document: Document, url: string, displayText = url): HTMLAnchorElement {
     const link = document.createElement("a");
     link.className = "link-router-anchor";
     link.href = url;
     link.dataset.privateUrl = url;
-    link.textContent = url;
+    link.textContent = displayText;
     link.title = this.getActionLabel();
     appendLinkIcon(link, this.settings.linkIcon);
     link.addEventListener("mousedown", (event) => {
@@ -279,7 +281,7 @@ export default class LinkRouterPlugin extends Plugin {
       let cursor = 0;
       for (const match of findRoutedLinks(text, this.settings)) {
         fragment.append(text.slice(cursor, match.from));
-        fragment.append(this.createLinkElement(document, match.url));
+        fragment.append(this.createLinkElement(document, match.url, match.displayText));
         cursor = match.to;
       }
       fragment.append(text.slice(cursor));
@@ -296,13 +298,24 @@ export default class LinkRouterPlugin extends Plugin {
       if (previous?.nodeType !== 3 || next?.nodeType !== 3) continue;
       const previousText = previous as Text;
       const nextText = next as Text;
-      if (!previousText.nodeValue?.endsWith(openingDelimiter) || !nextText.nodeValue?.startsWith(closingDelimiter)) continue;
+      if (!nextText.nodeValue?.startsWith(closingDelimiter)) continue;
 
-      previousText.nodeValue = previousText.nodeValue.slice(0, -openingDelimiter.length);
+      const previousValue = previousText.nodeValue ?? "";
+      const aliasStart = previousValue.lastIndexOf(openingDelimiter);
+      if (aliasStart < 0) continue;
+      const prefix = previousValue.slice(0, aliasStart);
+      const marker = previousValue.slice(aliasStart + openingDelimiter.length);
+      const hasAlias = marker.endsWith("|");
+      if (marker && !hasAlias) continue;
+      const displayText = hasAlias ? marker.slice(0, -1).trim() : candidate.textContent ?? candidate.href;
+      if (hasAlias && !displayText) continue;
+
+      previousText.nodeValue = prefix;
       nextText.nodeValue = nextText.nodeValue.slice(closingDelimiter.length);
       candidate.classList.remove("external-link");
       candidate.classList.add("link-router-anchor");
       candidate.dataset.privateUrl = candidate.href;
+      candidate.textContent = displayText;
       candidate.title = this.getActionLabel();
       appendLinkIcon(candidate, this.settings.linkIcon);
       candidate.addEventListener("mousedown", (event) => {

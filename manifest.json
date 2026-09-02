@@ -1,7 +1,7 @@
 {
   "id": "link-router",
   "name": "Link Router",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "minAppVersion": "1.4.0",
   "description": "Route specially delimited web links to another browser, browser mode, custom launch action, or clipboard.",
   "author": "Adam Fried-Gintis",
