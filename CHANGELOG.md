@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+- Require Obsidian 1.13 or later and complete the migration to searchable declarative settings.
+- Use Obsidian DOM helpers consistently throughout rendered link elements.
+- Resolve all findings from the Community Directory source-code review.
+
 ## 1.0.1
 
 - Add searchable declarative settings for Obsidian 1.13 and later.
