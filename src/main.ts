@@ -1,4 +1,5 @@
 import {
+  Menu,
   Notice,
   Platform,
   Plugin,
@@ -20,6 +21,7 @@ interface LinkRouterSettings extends LinkSyntax {
   browser: BrowserId;
   desktopRoute: DesktopRoute;
   mobileRoute: MobileRoute;
+  mobileLongPressMenu: boolean;
   linkIcon: IconId;
   customExecutable: string;
   customArguments: string;
@@ -50,6 +52,7 @@ const DEFAULT_SETTINGS: LinkRouterSettings = {
   browser: "chrome",
   desktopRoute: "private",
   mobileRoute: "copy",
+  mobileLongPressMenu: true,
   linkIcon: "external-link",
   customExecutable: "",
   customArguments: "--incognito {url}"
@@ -249,6 +252,51 @@ export default class LinkRouterPlugin extends Plugin {
     link.textContent = displayText;
     link.title = this.getActionLabel();
     appendLinkIcon(link, this.settings.linkIcon);
+    this.bindLinkInteractions(link, url);
+    return link;
+  }
+
+  private bindLinkInteractions(link: HTMLAnchorElement, url: string): void {
+    let longPressTimer: number | null = null;
+    let startX = 0;
+    let startY = 0;
+    let suppressClickUntil = 0;
+    const runtimeWindow = link.ownerDocument.defaultView;
+
+    const cancelLongPress = (): void => {
+      if (longPressTimer === null || !runtimeWindow) return;
+      runtimeWindow.clearTimeout(longPressTimer);
+      longPressTimer = null;
+    };
+
+    if (Platform.isMobile && runtimeWindow) {
+      link.addEventListener("pointerdown", (event) => {
+        if (!event.isPrimary || !this.settings.mobileLongPressMenu) return;
+        startX = event.clientX;
+        startY = event.clientY;
+        cancelLongPress();
+        longPressTimer = runtimeWindow.setTimeout(() => {
+          longPressTimer = null;
+          suppressClickUntil = Date.now() + 1000;
+          this.showMobileActionMenu(url, event.clientX, event.clientY, link.ownerDocument);
+        }, 550);
+      });
+      link.addEventListener("pointermove", (event) => {
+        if (Math.hypot(event.clientX - startX, event.clientY - startY) > 10) cancelLongPress();
+      });
+      link.addEventListener("pointerup", cancelLongPress);
+      link.addEventListener("pointercancel", cancelLongPress);
+      link.addEventListener("contextmenu", (event) => {
+        if (!this.settings.mobileLongPressMenu) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        cancelLongPress();
+        if (Date.now() < suppressClickUntil) return;
+        suppressClickUntil = Date.now() + 1000;
+        this.showMobileActionMenu(url, event.clientX, event.clientY, link.ownerDocument);
+      });
+    }
+
     link.addEventListener("mousedown", (event) => {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -256,9 +304,22 @@ export default class LinkRouterPlugin extends Plugin {
     link.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopImmediatePropagation();
+      if (Date.now() < suppressClickUntil) return;
       void this.activateUrl(url);
     });
-    return link;
+  }
+
+  private showMobileActionMenu(url: string, x: number, y: number, document: Document): void {
+    const menu = new Menu();
+    menu.addItem((item) => item
+      .setTitle("Open URL")
+      .setIcon("external-link")
+      .onClick(() => void this.openSystem(url)));
+    menu.addItem((item) => item
+      .setTitle("Copy URL")
+      .setIcon("copy")
+      .onClick(() => void this.copyUrl(url)));
+    menu.showAtPosition({ x, y }, document);
   }
 
   private renderRoutedLinks(element: HTMLElement): void {
@@ -318,15 +379,7 @@ export default class LinkRouterPlugin extends Plugin {
       candidate.textContent = displayText;
       candidate.title = this.getActionLabel();
       appendLinkIcon(candidate, this.settings.linkIcon);
-      candidate.addEventListener("mousedown", (event) => {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      });
-      candidate.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        void this.activateUrl(candidate.href);
-      });
+      this.bindLinkInteractions(candidate, candidate.href);
     }
   }
 
@@ -550,6 +603,16 @@ class LinkRouterSettingTab extends PluginSettingTab {
         .setValue(this.plugin.settings.mobileRoute)
         .onChange(async (value) => {
           this.plugin.settings.mobileRoute = value as MobileRoute;
+          await this.plugin.saveSettings();
+        }));
+
+    new Setting(containerEl)
+      .setName("Mobile long-press menu")
+      .setDesc("Long-press a routed link to choose between opening and copying it.")
+      .addToggle((toggle) => toggle
+        .setValue(this.plugin.settings.mobileLongPressMenu)
+        .onChange(async (value) => {
+          this.plugin.settings.mobileLongPressMenu = value;
           await this.plugin.saveSettings();
         }));
 

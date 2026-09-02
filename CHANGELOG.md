@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- Add an optional mobile long-press menu with Open URL and Copy URL actions.
+
 ## 0.1.1
 
 - Add optional display text with `{name|https://example.com}` syntax.

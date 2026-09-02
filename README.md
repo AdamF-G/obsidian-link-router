@@ -19,7 +19,7 @@ Ordinary bare URLs and Markdown links remain unchanged. The opening and closing 
 ## Behavior
 
 - Desktop routes: selected browser normally, selected browser privately, system browser, custom launch arguments, or copy.
-- Mobile routes: open normally or copy.
+- Mobile routes: open normally or copy; optionally long-press to choose either action.
 - Reading View and Live Preview are supported.
 - Moving the editor cursor into a routed link reveals its source for editing.
 - Chrome is the default browser. Edge, Firefox, Brave, and a custom executable are supported.
